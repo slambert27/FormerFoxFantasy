@@ -137,12 +137,15 @@ if (!empty($data['schedule'])) {
         .team-logo { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
         
         .matchups-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
-        .matchup-card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid #3182ce; }
+        .matchup-card { display: block; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid #3182ce; color: inherit; text-decoration: none; }
         .matchup-team { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
-        .matchup-team-info { display: flex; flex-direction: column; }
-        .team-owner { color: #718096; font-size: 12px; }
+        .matchup-team-info { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+        .matchup-team-info > span,
+        .matchup-team-info > small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .team-owner { color: #718096; font-size: 12px; font-weight: normal;}
         .matchup-team.winner { font-weight: bold; color: #2f855a; }
-        .score { font-size: 16px; font-weight: 600; }
+        .score { display: flex; flex-shrink: 0; flex-direction: column; align-items: flex-end; font-size: 16px; font-weight: 600; white-space: nowrap; }
+        .projected-score { color: #718096; font-size: 12px; font-weight: normal; }
     </style>
 </head>
 <body>
@@ -169,32 +172,44 @@ if (!empty($data['schedule'])) {
             
             $homeScore = $match['home']['pointsByScoringPeriod'][$currentWeek];
             $awayScore = $match['away']['pointsByScoringPeriod'][$currentWeek];
+            $homeProjected = $match['home']['totalProjectedPointsLive'] ?? null;
+            $awayProjected = $match['away']['totalProjectedPointsLive'] ?? null;
+            $homeComparisonScore = $homeProjected ?? $homeScore;
+            $awayComparisonScore = $awayProjected ?? $awayScore;
             
-            // Basic logic to bold who is currently winning
-            $homeWinning = $homeScore > $awayScore;
-            $awayWinning = $awayScore > $homeScore;
+            // Use live projected points to determine the current leader.
+            $homeWinning = $homeComparisonScore > $awayComparisonScore;
+            $awayWinning = $awayComparisonScore > $homeComparisonScore;
         ?>
-        <div class="matchup-card">
+        <a class="matchup-card" href="https://fantasy.espn.com/football/fantasycast?leagueId=<?php echo urlencode($activeLeagueId); ?>&matchupPeriodId=<?php echo urlencode($currentWeek); ?>&seasonId=<?php echo urlencode($season); ?>&teamId=<?php echo urlencode($homeId); ?>" target="_blank" rel="noopener noreferrer">
             <!-- Away Team Row -->
             <div class="matchup-team <?php echo $awayWinning ? 'winner' : ''; ?>">
                 <span class="matchup-team-info">
                     <span><?php echo htmlspecialchars($teams[$awayId]['name'] ?? 'Away Team'); ?></span>
                     <small class="team-owner"><?php echo htmlspecialchars($teams[$awayId]['owner'] ?? 'Unknown'); ?></small>
                 </span>
-                <span class="score"><?php echo number_format($awayScore, 2); ?></span>
+                <span class="score">
+                    <?php echo number_format($awayScore, 2); ?>
+                    <?php if ($awayProjected !== null): ?>
+                        <small class="projected-score">Proj <?php echo number_format($awayProjected, 2); ?></small>
+                    <?php endif; ?>
+                </span>
             </div>
-            
-            <div style="text-align: center; color: #a0aec0; font-size: 12px; margin: 4px 0;">VS</div>
-            
+                        
             <!-- Home Team Row -->
             <div class="matchup-team <?php echo $homeWinning ? 'winner' : ''; ?>">
                 <span class="matchup-team-info">
                     <span><?php echo htmlspecialchars($teams[$homeId]['name'] ?? 'Home Team'); ?></span>
                     <small class="team-owner"><?php echo htmlspecialchars($teams[$homeId]['owner'] ?? 'Unknown'); ?></small>
                 </span>
-                <span class="score"><?php echo number_format($homeScore, 2); ?></span>
+                <span class="score">
+                    <?php echo number_format($homeScore, 2); ?>
+                    <?php if ($homeProjected !== null): ?>
+                        <small class="projected-score">Proj <?php echo number_format($homeProjected, 2); ?></small>
+                    <?php endif; ?>
+                </span>
             </div>
-        </div>
+        </a>
         <?php endforeach; ?>
     </div>
 
