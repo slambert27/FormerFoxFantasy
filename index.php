@@ -35,7 +35,7 @@ $activeLeagueName = $leagues[$selectedIdx]['name'];
 $season = "2026";
 
 $cacheFile = __DIR__ . "/espn_fantasy_cache_{$activeLeagueId}.json"; 
-$cacheTime = 300;        // 👈 Cache duration in seconds (300 seconds = 5 minutes)
+$cacheTime = 300;        // Cache duration in seconds (300 seconds = 5 minutes)
 
 // Build the multi-view API URL
 $url = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{$season}/segments/0/leagues/{$activeLeagueId}?view=mTeam&view=mStandings&view=mMatchup";
@@ -86,17 +86,24 @@ foreach ($data['members'] ?? [] as $member) {
     $members[$member['id']] = trim(($member['firstName'] ?? '') . ' ' . ($member['lastName'] ?? '')) ?: 'Unknown';
 }
 
-$positions = [
-    1 => 'QB',
+$lineupPositions = [
+    0 => 'QB',
     2 => 'RB',
-    3 => 'WR',
-    4 => 'TE',
-    5 => 'K',
+    4 => 'WR',
+    6 => 'TE',
     16 => 'D/ST',
-    17 => 'DB',
-    18 => 'LB',
-    19 => 'DL',
-    20 => 'IDP'
+    17 => 'K',
+    23 => 'FLEX'
+];
+
+$lineupOrder = [
+    0 => 0,
+    2 => 1,
+    4 => 2,
+    6 => 3,
+    23 => 4,
+    16 => 5,
+    17 => 6
 ];
 
 $teams = [];
@@ -104,20 +111,18 @@ foreach ($data['teams'] as $t) {
     $roster = [];
     foreach ($t['roster']['entries'] ?? [] as $entry) {
         $lineupSlotId = (int)($entry['lineupSlotId'] ?? PHP_INT_MAX);
-        if ($lineupSlotId >= 20) {
-            continue;
+        if (isset($lineupOrder[$lineupSlotId])) {
+            $player = $entry['playerPoolEntry']['player'] ?? [];
+            $roster[] = [
+                'lineupSlotId' => $lineupSlotId,
+                'position' => $lineupPositions[$lineupSlotId],
+                'name' => $player['fullName'] ?? 'Unknown',
+                'score' => $entry['playerPoolEntry']['appliedStatTotal'] ?? 0
+            ];
         }
-
-        $player = $entry['playerPoolEntry']['player'] ?? [];
-        $roster[] = [
-            'lineupSlotId' => $lineupSlotId,
-            'position' => $positions[$player['defaultPositionId'] ?? 0] ?? 'Unknown',
-            'name' => $player['fullName'] ?? 'Unknown',
-            'score' => $entry['playerPoolEntry']['appliedStatTotal'] ?? 0
-        ];
     }
-    usort($roster, function($a, $b) {
-        return $a['lineupSlotId'] <=> $b['lineupSlotId'];
+    usort($roster, function($a, $b) use ($lineupOrder) {
+        return $lineupOrder[$a['lineupSlotId']] <=> $lineupOrder[$b['lineupSlotId']];
     });
 
     $teams[$t['id']] = [
@@ -192,11 +197,13 @@ if (!empty($data['schedule'])) {
         .score { display: flex; flex-shrink: 0; flex-direction: column; align-items: flex-end; font-size: 16px; font-weight: 600; white-space: nowrap; }
         .projected-score { color: #718096; font-size: 12px; font-weight: normal; }
         .roster-toggle { display: block; margin: 0 auto; border: 0; background: transparent; color: #4a5568; cursor: pointer; font-size: 16px; padding: 4px 8px; }
-        .roster-toggle[aria-expanded="true"] span[aria-hidden="true"] { display: inline-block; transform: rotate(180deg); }
+        .roster-toggle span[aria-hidden="true"] { display: inline-block; transform: rotate(90deg); }
+        .roster-toggle[aria-expanded="true"] span[aria-hidden="true"] { transform: rotate(270deg); }
         .roster-row td { padding: 0 15px 12px; }
         .roster-table { width: min(100%, 520px); margin: 0 auto; box-shadow: none; }
         .roster-table th,
         .roster-table td { padding-top: 8px; padding-bottom: 8px; }
+        .roster-position { color: #718096; font-size: 12px; }
         .roster-table tr:nth-child(even) { background-color: transparent; }
         .roster-table th { background-color: #4a5568; }
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
@@ -312,7 +319,7 @@ if (!empty($data['schedule'])) {
                 <td class="align-right"><?php echo number_format($team['playoffPct'] * 100, 0); ?>%</td>
                 <td>
                     <button class="roster-toggle" type="button" aria-expanded="false" aria-controls="roster-<?php echo (int)$id; ?>">
-                        <span aria-hidden="true">&#9660;</span>
+                        <span aria-hidden="true">&#10095;</span>
                         <span class="sr-only">Show roster</span>
                     </button>
                 </td>
@@ -324,15 +331,15 @@ if (!empty($data['schedule'])) {
                             <tr>
                                 <th style="width: 40px;">Pos </th>
                                 <th>Player</th>
-                                <th style="width: 80px;">Score</th>
+                                <th class="align-right" style="width: 80px;">Score</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($team['roster'] as $player): ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($player['position']); ?></td>
+                                <td class="roster-position"><?php echo htmlspecialchars($player['position']); ?></td>
                                 <td><?php echo htmlspecialchars($player['name']); ?></td>
-                                <td><?php echo number_format($player['score'], 2); ?></td>
+                                <td class="align-right"><?php echo number_format($player['score'], 2); ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
