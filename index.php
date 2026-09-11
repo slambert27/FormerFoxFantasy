@@ -1,10 +1,10 @@
 <?php
 /**
- * ESPN Fantasy Football Dashboard for Namecheap Hosting (PHP)
+ * ESPN Fantasy Football Dashboard
  */
 
 // 1. CONFIGURATION
-$myLeagues = [
+$leagues = [
     [
         'id'   => '5867033',
         'name' => 'Varsity'
@@ -22,12 +22,12 @@ $myLeagues = [
 // 2. DETERMINE SELECTED LEAGUE
 // Get the league index from the URL (defaults to index 0 if not set or invalid)
 $selectedIdx = isset($_GET['league']) ? (int)$_GET['league'] : 0;
-if (!isset($myLeagues[$selectedIdx])) {
+if (!isset($leagues[$selectedIdx])) {
     $selectedIdx = 0;
 }
 
-$activeLeagueId   = $myLeagues[$selectedIdx]['id'];
-$activeLeagueName = $myLeagues[$selectedIdx]['name'];
+$activeLeagueId   = $leagues[$selectedIdx]['id'];
+$activeLeagueName = $leagues[$selectedIdx]['name'];
 $season = "2026";
 
 $cacheFile = __DIR__ . "/espn_fantasy_cache_{$activeLeagueId}.json"; 
@@ -36,7 +36,7 @@ $cacheTime = 300;        // 👈 Cache duration in seconds (300 seconds = 5 minu
 // Build the multi-view API URL
 $url = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{$season}/segments/0/leagues/{$activeLeagueId}?view=mTeam&view=mStandings&view=mMatchup";
 
-// 2. CACHING LOGIC
+// 3. CACHING LOGIC
 $fetchNewData = true;
 
 // Check if a previously saved cache file exists
@@ -74,17 +74,24 @@ $data = json_decode($response, true);
 // Extract global status details
 $currentWeek = $data['status']['currentMatchupPeriod'];
 
-// 3. DATA PROCESSING
+// 4. DATA PROCESSING
 // Map Team IDs to their actual names so we can display them easily later
+
+$members = [];
+foreach ($data['members'] ?? [] as $member) {
+    $members[$member['id']] = trim(($member['firstName'] ?? '') . ' ' . ($member['lastName'] ?? '')) ?: 'Unknown';
+}
+
 $teams = [];
 foreach ($data['teams'] as $t) {
     $teams[$t['id']] = [
-        'name'   => $t['name'],
-        'wins'   => $t['record']['overall']['wins'],
+        'name'  => $t['name'],
+        'owner' => $members[$t['primaryOwner']] ?? 'Unknown',
+        'wins'  => $t['record']['overall']['wins'],
         'losses' => $t['record']['overall']['losses'],
-        'ties'   => $t['record']['overall']['ties'],
+        'ties'  => $t['record']['overall']['ties'],
         'points' => $t['record']['overall']['pointsFor'],
-        'rank'   => $t['playoffSeed']
+        'rank'  => $t['playoffSeed']
     ];
 }
 
@@ -132,6 +139,8 @@ if (!empty($data['schedule'])) {
         .matchups-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
         .matchup-card { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid #3182ce; }
         .matchup-team { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
+        .matchup-team-info { display: flex; flex-direction: column; }
+        .team-owner { color: #718096; font-size: 12px; }
         .matchup-team.winner { font-weight: bold; color: #2f855a; }
         .score { font-size: 16px; font-weight: 600; }
     </style>
@@ -140,11 +149,10 @@ if (!empty($data['schedule'])) {
 
 <div class="container">
     <h1>🏈 Fantasy Football Dashboard</h1>
-    <p style="color: #718096; margin: 0;">Season: <?php echo $season; ?></p>
 
     <!-- LEAGUE SELECTION TOGGLE -->
     <div class="league-toggle">
-        <?php foreach ($myLeagues as $index => $league): ?>
+        <?php foreach ($leagues as $index => $league): ?>
             <a href="?league=<?php echo $index; ?>" 
                class="toggle-btn <?php echo ($selectedIdx === $index) ? 'active' : ''; ?>">
                 <?php echo htmlspecialchars($league['name']); ?>
@@ -152,34 +160,7 @@ if (!empty($data['schedule'])) {
         <?php endforeach; ?>
     </div>
 
-    <!-- SECTION 1: LEAGUE STANDINGS -->
-    <h2>🏆 <?php echo htmlspecialchars($activeLeagueName); ?> Current Standings</h2>
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 60px;">Seed</th>
-                <th>Team</th>
-                <th style="width: 100px;">Record</th>
-                <th style="width: 120px;">Points For</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($teams as $id => $team): ?>
-            <tr>
-                <td><strong><?= $team['rank']; ?></strong></td>
-                <td>
-                    <div class="team-cell">
-                        <span><?php echo htmlspecialchars($team['name']); ?></span>
-                    </div>
-                </td>
-                <td><?php echo "{$team['wins']}-{$team['losses']}-{$team['ties']}"; ?></td>
-                <td><?php echo number_format($team['points'], 2); ?></td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-
-    <!-- SECTION 2: CURRENT WEEK SCORES -->
+    <!-- SECTION 1: CURRENT WEEK SCORES -->
     <h2>📊 Week <?php echo $currentWeek; ?> Scoreboard</h2>
     <div class="matchups-grid">
         <?php foreach ($currentMatchups as $match): 
@@ -196,7 +177,10 @@ if (!empty($data['schedule'])) {
         <div class="matchup-card">
             <!-- Away Team Row -->
             <div class="matchup-team <?php echo $awayWinning ? 'winner' : ''; ?>">
-                <span><?php echo htmlspecialchars($teams[$awayId]['name'] ?? 'Away Team'); ?></span>
+                <span class="matchup-team-info">
+                    <span><?php echo htmlspecialchars($teams[$awayId]['name'] ?? 'Away Team'); ?></span>
+                    <small class="team-owner"><?php echo htmlspecialchars($teams[$awayId]['owner'] ?? 'Unknown'); ?></small>
+                </span>
                 <span class="score"><?php echo number_format($awayScore, 2); ?></span>
             </div>
             
@@ -204,12 +188,44 @@ if (!empty($data['schedule'])) {
             
             <!-- Home Team Row -->
             <div class="matchup-team <?php echo $homeWinning ? 'winner' : ''; ?>">
-                <span><?php echo htmlspecialchars($teams[$homeId]['name'] ?? 'Home Team'); ?></span>
+                <span class="matchup-team-info">
+                    <span><?php echo htmlspecialchars($teams[$homeId]['name'] ?? 'Home Team'); ?></span>
+                    <small class="team-owner"><?php echo htmlspecialchars($teams[$homeId]['owner'] ?? 'Unknown'); ?></small>
+                </span>
                 <span class="score"><?php echo number_format($homeScore, 2); ?></span>
             </div>
         </div>
         <?php endforeach; ?>
     </div>
+
+    <!-- SECTION 2: LEAGUE STANDINGS -->
+    <h2>🏆 <?php echo htmlspecialchars($activeLeagueName); ?> Current Standings</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 60px;">Seed</th>
+                <th>Team</th>
+                <th>Owner</th>
+                <th style="width: 100px;">Record</th>
+                <th style="width: 120px;">Points For</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($teams as $id => $team): ?>
+            <tr>
+                <td><strong><?= $team['rank']; ?></strong></td>
+                <td>
+                    <div class="team-cell">
+                        <span><?php echo htmlspecialchars($team['name']); ?></span>
+                    </div>
+                </td>
+                <td><?php echo htmlspecialchars($team['owner']); ?></td>
+                <td><?php echo "{$team['wins']}-{$team['losses']}-{$team['ties']}"; ?></td>
+                <td><?php echo number_format($team['points'], 2); ?></td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
 </div>
 
 </body>
