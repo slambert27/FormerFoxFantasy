@@ -31,7 +31,7 @@ function countLeagueTeams(array $data): int
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Superleague Stats</title>
+    <title>Fantasy Superleague</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #f7f9fa; color: #333; margin: 0; padding: 20px; }
         .container { max-width: 1000px; margin: 0 auto; }
@@ -58,7 +58,7 @@ function countLeagueTeams(array $data): int
                 <?php echo htmlspecialchars($league['name']); ?>
             </a>
         <?php endforeach; ?>
-        <a href="stats" class="toggle-btn active" aria-current="page">Superleague Stats</a>
+        <a href="stats" class="toggle-btn active" aria-current="page">Stats</a>
     </nav>
 
     <h2>League Data Loaded</h2>

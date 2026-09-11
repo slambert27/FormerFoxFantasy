@@ -5,6 +5,13 @@
 
 require_once __DIR__ . '/espn_data.php';
 
+// Support /stats when the local server routes unknown paths through index.php.
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+if (is_string($requestPath) && preg_match('~/stats/?$~', $requestPath)) {
+    require __DIR__ . '/stats.php';
+    exit;
+}
+
 // 1. CONFIGURATION
 $leagues = getLeagueConfigs();
 
@@ -188,7 +195,7 @@ if (!empty($data['schedule'])) {
                 <?php echo htmlspecialchars($league['name']); ?>
             </a>
         <?php endforeach; ?>
-        <a href="stats" class="toggle-btn">Superleague Stats</a>
+        <a href="stats" class="toggle-btn">Stats</a>
     </div>
 
     <!-- SECTION 1: CURRENT WEEK SCORES -->
