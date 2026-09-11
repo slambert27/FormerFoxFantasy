@@ -3,21 +3,10 @@
  * ESPN Fantasy Football Dashboard
  */
 
+require_once __DIR__ . '/espn_data.php';
+
 // 1. CONFIGURATION
-$leagues = [
-    [
-        'id'   => '5867033',
-        'name' => 'Varsity'
-    ],
-    [
-        'id'   => '125199559',
-        'name' => 'JV'
-    ],
-    [
-        'id'   => '1860357183',
-        'name' => 'Freshman'
-    ]
-];
+$leagues = getLeagueConfigs();
 
 // 2. DETERMINE SELECTED LEAGUE
 // Get the league index from the URL (defaults to index 0 if not set or invalid)
@@ -34,46 +23,7 @@ $activeLeagueId   = $leagues[$selectedIdx]['id'];
 $activeLeagueName = $leagues[$selectedIdx]['name'];
 $season = "2026";
 
-$cacheFile = __DIR__ . "/espn_fantasy_cache_{$activeLeagueId}.json"; 
-$cacheTime = 300;        // Cache duration in seconds (300 seconds = 5 minutes)
-
-// Build the multi-view API URL
-$url = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{$season}/segments/0/leagues/{$activeLeagueId}?view=mTeam&view=mStandings&view=mMatchup";
-
-// 3. CACHING LOGIC
-$fetchNewData = true;
-
-// Check if a previously saved cache file exists
-if (file_exists($cacheFile)) {
-    // Check if the file is fresher than 5 minutes
-    if ((time() - filemtime($cacheFile)) < $cacheTime) {
-        $response = file_get_contents($cacheFile);
-        
-        // Ensure the cached data isn't corrupt or empty
-        if ($response !== FALSE && !empty($response)) {
-            $fetchNewData = false;
-        }
-    }
-}
-
-// If the cache is old or doesn't exist, call ESPN and save a new copy
-if ($fetchNewData) {
-    $response = file_get_contents($url);
-    
-    if ($response === FALSE) {
-        // Fallback: If ESPN fails to respond, try to load the old cache anyway so the site doesn't crash
-        if (file_exists($cacheFile)) {
-            $response = file_get_contents($cacheFile);
-        } else {
-            die("Error: Unable to fetch live data from ESPN and no local cache exists.");
-        }
-    } else {
-        // Save the fresh live response to your Namecheap server for next time
-        file_put_contents($cacheFile, $response);
-    }
-}
-
-$data = json_decode($response, true);
+$data = loadLeagueData($activeLeagueId, $season);
 
 // Extract global status details
 $currentWeek = $data['status']['currentMatchupPeriod'];
@@ -238,6 +188,7 @@ if (!empty($data['schedule'])) {
                 <?php echo htmlspecialchars($league['name']); ?>
             </a>
         <?php endforeach; ?>
+        <a href="stats" class="toggle-btn">Superleague Stats</a>
     </div>
 
     <!-- SECTION 1: CURRENT WEEK SCORES -->
