@@ -168,7 +168,11 @@ if (!empty($data['schedule'])) {
         .standings-table th { background-color: #1a202c; color: #fff; text-transform: uppercase; font-size: 12px; }
         .standings-table .align-right { text-align: right; }
         .standings-table tr:nth-child(even) { background-color: #f8fafc; }
-        .standings-table { table-layout: fixed; }
+        .standings-table { width: 100%; table-layout: auto; }
+        .standings-table .team-column,
+        .standings-table .owner-column { width: 35%; white-space: wrap; }
+        .standings-table th,
+        .standings-table td { white-space: nowrap; }
         .standings-table .team-cell { min-width: 0; }
         .team-cell { display: flex; align-items: center; gap: 10px; }
         .team-cell a { color: inherit; text-decoration: none; }
@@ -195,21 +199,9 @@ if (!empty($data['schedule'])) {
 
         @media (min-width: 601px) and (max-width: 900px), (max-width: 600px) {
             .standings-table th,
-            .standings-table td { padding-left: 8px; padding-right: 8px; }
-            .standings-table th:nth-child(1),
-            .standings-table td:nth-child(1) { width: 6%; }
-            .standings-table th:nth-child(2),
-            .standings-table td:nth-child(2) { width: 28%; }
+            .standings-table td { padding-left: 4px; padding-right: 4px; }
             .standings-table th:nth-child(3),
-            .standings-table td:nth-child(3) { width: 23%; overflow-wrap: anywhere; }
-            .standings-table th:nth-child(4),
-            .standings-table td:nth-child(4) { width: 16%; padding-left: 4px; padding-right: 4px; }
-            .standings-table th:nth-child(5),
-            .standings-table td:nth-child(5) { width: 11%; padding-left: 4px; padding-right: 4px; }
-            .standings-table th:nth-child(6),
-            .standings-table td:nth-child(6) { width: 10%; padding-left: 4px; padding-right: 4px; }
-            .standings-table th:nth-child(7),
-            .standings-table td:nth-child(7) { width: 6%; padding-left: 4px; padding-right: 4px; }
+            .standings-table td:nth-child(3) { overflow-wrap: anywhere; }
             .standings-table td:nth-child(2) a { overflow-wrap: anywhere; }
         }
 
@@ -223,7 +215,7 @@ if (!empty($data['schedule'])) {
 <body>
 
 <div class="container">
-    <h1>🏈 Fantasy Football Dashboard</h1>
+    <h1>🏈 Fantasy Football Superleague</h1>
 
     <!-- LEAGUE SELECTION TOGGLE -->
     <div class="league-toggle">
@@ -236,7 +228,7 @@ if (!empty($data['schedule'])) {
     </div>
 
     <!-- SECTION 1: CURRENT WEEK SCORES -->
-    <h2>📊 Week <?php echo $currentWeek; ?> Scoreboard</h2>
+    <h2>🏟️ Week <?php echo $currentWeek; ?> Scoreboard</h2>
     <div class="matchups-grid">
         <?php foreach ($currentMatchups as $match): 
             $homeId = $match['home']['teamId'];
@@ -290,27 +282,27 @@ if (!empty($data['schedule'])) {
     <table class="standings-table">
         <thead>
             <tr>
-                <th style="width: 30px;">Seed</th>
-                <th>Team</th>
-                <th>Owner</th>
-                <th class="align-right" style="width: 80px;">Record</th>
-                <th class="align-right" style="width: 70px;">Points</th>
-                <th class="align-right" style="width: 80px;">Playoff %</th>
-                <th style="width: 50px;">Roster</th>
+                <th>Seed</th>
+                <th class="team-column">Team</th>
+                <th class="owner-column">Owner</th>
+                <th class="align-right">Record</th>
+                <th class="align-right">Points</th>
+                <th class="align-right">Playoff%</th>
+                <th>Roster</th>
             </tr>
         </thead>
         <tbody>
             <?php foreach ($teams as $id => $team): ?>
             <tr>
                 <td><strong><?= $team['rank']; ?></strong></td>
-                <td>
+                <td class="team-column">
                     <div class="team-cell">
                         <a href="https://fantasy.espn.com/football/team?leagueId=<?php echo urlencode($activeLeagueId); ?>&teamId=<?php echo urlencode($id); ?>" target="_blank" rel="noopener noreferrer">
                             <?php echo htmlspecialchars($team['name']); ?>
                         </a>
                     </div>
                 </td>
-                <td><?php echo htmlspecialchars($team['owner']); ?></td>
+                <td class="owner-column"><?php echo htmlspecialchars($team['owner']); ?></td>
                 <td class="align-right"><?php echo "{$team['wins']}-{$team['losses']}-{$team['ties']}"; ?></td>
                 <td class="align-right"><?php echo number_format($team['points'], 2); ?></td>
                 <td class="align-right"><?php echo number_format($team['playoffPct'] * 100, 0); ?>%</td>
