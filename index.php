@@ -82,8 +82,40 @@ foreach ($data['members'] ?? [] as $member) {
     $members[$member['id']] = trim(($member['firstName'] ?? '') . ' ' . ($member['lastName'] ?? '')) ?: 'Unknown';
 }
 
+$positions = [
+    1 => 'QB',
+    2 => 'RB',
+    3 => 'WR',
+    4 => 'TE',
+    5 => 'K',
+    16 => 'D/ST',
+    17 => 'DB',
+    18 => 'LB',
+    19 => 'DL',
+    20 => 'IDP'
+];
+
 $teams = [];
 foreach ($data['teams'] as $t) {
+    $roster = [];
+    foreach ($t['roster']['entries'] ?? [] as $entry) {
+        $lineupSlotId = (int)($entry['lineupSlotId'] ?? PHP_INT_MAX);
+        if ($lineupSlotId >= 20) {
+            continue;
+        }
+
+        $player = $entry['playerPoolEntry']['player'] ?? [];
+        $roster[] = [
+            'lineupSlotId' => $lineupSlotId,
+            'position' => $positions[$player['defaultPositionId'] ?? 0] ?? 'Unknown',
+            'name' => $player['fullName'] ?? 'Unknown',
+            'score' => $entry['playerPoolEntry']['appliedStatTotal'] ?? 0
+        ];
+    }
+    usort($roster, function($a, $b) {
+        return $a['lineupSlotId'] <=> $b['lineupSlotId'];
+    });
+
     $teams[$t['id']] = [
         'name'  => $t['name'],
         'owner' => $members[$t['primaryOwner']] ?? 'Unknown',
@@ -91,7 +123,9 @@ foreach ($data['teams'] as $t) {
         'losses' => $t['record']['overall']['losses'],
         'ties'  => $t['record']['overall']['ties'],
         'points' => $t['record']['overall']['pointsFor'],
-        'rank'  => $t['playoffSeed']
+        'rank'  => $t['playoffSeed'],
+        'playoffPct' => $t['currentSimulationResults']['playoffPct'] ?? 0,
+        'roster' => $roster
     ];
 }
 
@@ -130,11 +164,14 @@ if (!empty($data['schedule'])) {
         
         /* Layout Tables & Scoreboard Cards */
         table { width: 100%; border-collapse: collapse; background: #fff; margin-bottom: 40px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-radius: 6px; overflow: hidden; }
-        th, td { padding: 12px 15px; text-align: left; }
-        th { background-color: #1a202c; color: #fff; text-transform: uppercase; font-size: 12px; }
-        tr:nth-child(even) { background-color: #f8fafc; }
+        .standings-table th, .standings-table td { padding: 12px 12px; text-align: left; }
+        .standings-table th { background-color: #1a202c; color: #fff; text-transform: uppercase; font-size: 12px; }
+        .standings-table .align-right { text-align: right; }
+        .standings-table tr:nth-child(even) { background-color: #f8fafc; }
+        .standings-table { table-layout: fixed; }
+        .standings-table .team-cell { min-width: 0; }
         .team-cell { display: flex; align-items: center; gap: 10px; }
-        .team-logo { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+        .team-cell a { color: inherit; text-decoration: none; }
         
         .matchups-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
         .matchup-card { display: block; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid #3182ce; color: inherit; text-decoration: none; }
@@ -146,6 +183,41 @@ if (!empty($data['schedule'])) {
         .matchup-team.winner { font-weight: bold; color: #2f855a; }
         .score { display: flex; flex-shrink: 0; flex-direction: column; align-items: flex-end; font-size: 16px; font-weight: 600; white-space: nowrap; }
         .projected-score { color: #718096; font-size: 12px; font-weight: normal; }
+        .roster-toggle { display: block; margin: 0 auto; border: 0; background: transparent; color: #4a5568; cursor: pointer; font-size: 16px; padding: 4px 8px; }
+        .roster-toggle[aria-expanded="true"] span[aria-hidden="true"] { display: inline-block; transform: rotate(180deg); }
+        .roster-row td { padding: 0 15px 12px; }
+        .roster-table { width: min(100%, 520px); margin: 0 auto; box-shadow: none; }
+        .roster-table th,
+        .roster-table td { padding-top: 8px; padding-bottom: 8px; }
+        .roster-table tr:nth-child(even) { background-color: transparent; }
+        .roster-table th { background-color: #4a5568; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+        @media (min-width: 601px) and (max-width: 900px), (max-width: 600px) {
+            .standings-table th,
+            .standings-table td { padding-left: 8px; padding-right: 8px; }
+            .standings-table th:nth-child(1),
+            .standings-table td:nth-child(1) { width: 6%; }
+            .standings-table th:nth-child(2),
+            .standings-table td:nth-child(2) { width: 28%; }
+            .standings-table th:nth-child(3),
+            .standings-table td:nth-child(3) { width: 23%; overflow-wrap: anywhere; }
+            .standings-table th:nth-child(4),
+            .standings-table td:nth-child(4) { width: 16%; padding-left: 4px; padding-right: 4px; }
+            .standings-table th:nth-child(5),
+            .standings-table td:nth-child(5) { width: 11%; padding-left: 4px; padding-right: 4px; }
+            .standings-table th:nth-child(6),
+            .standings-table td:nth-child(6) { width: 10%; padding-left: 4px; padding-right: 4px; }
+            .standings-table th:nth-child(7),
+            .standings-table td:nth-child(7) { width: 6%; padding-left: 4px; padding-right: 4px; }
+            .standings-table td:nth-child(2) a { overflow-wrap: anywhere; }
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            .standings-table th:nth-child(6),
+            .standings-table td:nth-child(6) { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -215,14 +287,16 @@ if (!empty($data['schedule'])) {
 
     <!-- SECTION 2: LEAGUE STANDINGS -->
     <h2>🏆 <?php echo htmlspecialchars($activeLeagueName); ?> Current Standings</h2>
-    <table>
+    <table class="standings-table">
         <thead>
             <tr>
-                <th style="width: 60px;">Seed</th>
+                <th style="width: 30px;">Seed</th>
                 <th>Team</th>
                 <th>Owner</th>
-                <th style="width: 100px;">Record</th>
-                <th style="width: 120px;">Points For</th>
+                <th class="align-right" style="width: 80px;">Record</th>
+                <th class="align-right" style="width: 70px;">Points</th>
+                <th class="align-right" style="width: 80px;">Playoff %</th>
+                <th style="width: 50px;">Roster</th>
             </tr>
         </thead>
         <tbody>
@@ -231,17 +305,61 @@ if (!empty($data['schedule'])) {
                 <td><strong><?= $team['rank']; ?></strong></td>
                 <td>
                     <div class="team-cell">
-                        <span><?php echo htmlspecialchars($team['name']); ?></span>
+                        <a href="https://fantasy.espn.com/football/team?leagueId=<?php echo urlencode($activeLeagueId); ?>&teamId=<?php echo urlencode($id); ?>" target="_blank" rel="noopener noreferrer">
+                            <?php echo htmlspecialchars($team['name']); ?>
+                        </a>
                     </div>
                 </td>
                 <td><?php echo htmlspecialchars($team['owner']); ?></td>
-                <td><?php echo "{$team['wins']}-{$team['losses']}-{$team['ties']}"; ?></td>
-                <td><?php echo number_format($team['points'], 2); ?></td>
+                <td class="align-right"><?php echo "{$team['wins']}-{$team['losses']}-{$team['ties']}"; ?></td>
+                <td class="align-right"><?php echo number_format($team['points'], 2); ?></td>
+                <td class="align-right"><?php echo number_format($team['playoffPct'] * 100, 0); ?>%</td>
+                <td>
+                    <button class="roster-toggle" type="button" aria-expanded="false" aria-controls="roster-<?php echo (int)$id; ?>">
+                        <span aria-hidden="true">&#9660;</span>
+                        <span class="sr-only">Show roster</span>
+                    </button>
+                </td>
+            </tr>
+            <tr class="roster-row" id="roster-<?php echo (int)$id; ?>" hidden>
+                <td colspan="7">
+                    <table class="roster-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">Pos </th>
+                                <th>Player</th>
+                                <th style="width: 80px;">Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($team['roster'] as $player): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($player['position']); ?></td>
+                                <td><?php echo htmlspecialchars($player['name']); ?></td>
+                                <td><?php echo number_format($player['score'], 2); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </td>
             </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
 </div>
+
+<script>
+    document.querySelectorAll('.roster-toggle').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const roster = document.getElementById(button.getAttribute('aria-controls'));
+            const expanded = button.getAttribute('aria-expanded') === 'true';
+
+            button.setAttribute('aria-expanded', String(!expanded));
+            button.querySelector('.sr-only').textContent = expanded ? 'Show roster' : 'Hide roster';
+            roster.hidden = expanded;
+        });
+    });
+</script>
 
 </body>
 </html>
