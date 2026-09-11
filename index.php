@@ -21,9 +21,13 @@ $leagues = [
 
 // 2. DETERMINE SELECTED LEAGUE
 // Get the league index from the URL (defaults to index 0 if not set or invalid)
-$selectedIdx = isset($_GET['league']) ? (int)$_GET['league'] : 0;
-if (!isset($leagues[$selectedIdx])) {
-    $selectedIdx = 0;
+$requestedLeague = $_GET['league'] ?? null;
+$selectedIdx = array_search((string)$requestedLeague, array_column($leagues, 'id'), true);
+if ($selectedIdx === false) {
+    $selectedIdx = filter_var($requestedLeague, FILTER_VALIDATE_INT);
+    if ($selectedIdx === false || !isset($leagues[$selectedIdx])) {
+        $selectedIdx = 0;
+    }
 }
 
 $activeLeagueId   = $leagues[$selectedIdx]['id'];
@@ -149,7 +153,7 @@ if (!empty($data['schedule'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($activeLeagueName); ?> - Dashboard</title>
+    <title>Fantasy Superleague</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: #f7f9fa; color: #333; margin: 0; padding: 20px; }
         .container { max-width: 1000px; margin: 0 auto; }
@@ -220,7 +224,7 @@ if (!empty($data['schedule'])) {
     <!-- LEAGUE SELECTION TOGGLE -->
     <div class="league-toggle">
         <?php foreach ($leagues as $index => $league): ?>
-            <a href="?league=<?php echo $index; ?>" 
+            <a href="?league=<?php echo urlencode($league['id']); ?>" 
                class="toggle-btn <?php echo ($selectedIdx === $index) ? 'active' : ''; ?>">
                 <?php echo htmlspecialchars($league['name']); ?>
             </a>
