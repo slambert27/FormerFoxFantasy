@@ -21,10 +21,89 @@ foreach ($leagueData as $league) {
     }
 }
 
-function countLeagueTeams(array $data): int
-{
-    return count($data['teams'] ?? []);
+$currentWeekScores = [];
+$currentWeekMargins = [];
+foreach ($leagueData as $league) {
+    $data = $league['data'];
+    $week = $data['status']['currentMatchupPeriod'] ?? $currentWeek;
+    $members = [];
+    $teams = [];
+
+    foreach ($data['members'] ?? [] as $member) {
+        $members[$member['id']] = trim(($member['firstName'] ?? '') . ' ' . ($member['lastName'] ?? '')) ?: 'Unknown';
+    }
+
+    foreach ($data['teams'] ?? [] as $team) {
+        $teams[$team['id']] = [
+            'name' => $team['name'] ?? 'Unknown Team',
+            'owner' => $members[$team['primaryOwner'] ?? ''] ?? 'Unknown Owner'
+        ];
+    }
+
+    foreach ($data['schedule'] ?? [] as $matchup) {
+        if (($matchup['matchupPeriodId'] ?? null) != $week) {
+            continue;
+        }
+
+        $homeId = $matchup['home']['teamId'] ?? null;
+        $awayId = $matchup['away']['teamId'] ?? null;
+        $homeScore = (float)($matchup['home']['pointsByScoringPeriod'][$week] ?? 0);
+        $awayScore = (float)($matchup['away']['pointsByScoringPeriod'][$week] ?? 0);
+
+        if ($homeId !== null && $awayId !== null) {
+            if ($homeScore !== $awayScore) {
+                $homeWon = $homeScore > $awayScore;
+                $currentWeekMargins[] = [
+                    'league' => $league['config']['name'],
+                    'winner' => $homeWon ? ($teams[$homeId]['name'] ?? 'Unknown Team') : ($teams[$awayId]['name'] ?? 'Unknown Team'),
+                    'winnerOwner' => $homeWon ? ($teams[$homeId]['owner'] ?? 'Unknown Owner') : ($teams[$awayId]['owner'] ?? 'Unknown Owner'),
+                    'winnerScore' => $homeWon ? $homeScore : $awayScore,
+                    'loser' => $homeWon ? ($teams[$awayId]['name'] ?? 'Unknown Team') : ($teams[$homeId]['name'] ?? 'Unknown Team'),
+                    'loserOwner' => $homeWon ? ($teams[$awayId]['owner'] ?? 'Unknown Owner') : ($teams[$homeId]['owner'] ?? 'Unknown Owner'),
+                    'loserScore' => $homeWon ? $awayScore : $homeScore,
+                    'margin' => abs($homeScore - $awayScore)
+                ];
+            }
+
+            $currentWeekScores[] = [
+                'league' => $league['config']['name'],
+                'team' => $teams[$homeId]['name'] ?? 'Unknown Team',
+                'owner' => $teams[$homeId]['owner'] ?? 'Unknown Owner',
+                'score' => $homeScore,
+                'opponent' => $teams[$awayId]['name'] ?? 'Unknown Team',
+                'opponentOwner' => $teams[$awayId]['owner'] ?? 'Unknown Owner',
+                'opponentScore' => $awayScore
+            ];
+            $currentWeekScores[] = [
+                'league' => $league['config']['name'],
+                'team' => $teams[$awayId]['name'] ?? 'Unknown Team',
+                'owner' => $teams[$awayId]['owner'] ?? 'Unknown Owner',
+                'score' => $awayScore,
+                'opponent' => $teams[$homeId]['name'] ?? 'Unknown Team',
+                'opponentOwner' => $teams[$homeId]['owner'] ?? 'Unknown Owner',
+                'opponentScore' => $homeScore
+            ];
+        }
+    }
 }
+
+$highestWeekScore = $currentWeekScores ? max(array_column($currentWeekScores, 'score')) : null;
+$lowestWeekScore = $currentWeekScores ? min(array_column($currentWeekScores, 'score')) : null;
+$highestWeekTeam = $highestWeekScore !== null
+    ? current(array_filter($currentWeekScores, fn($entry) => $entry['score'] === $highestWeekScore))
+    : null;
+$lowestWeekTeam = $lowestWeekScore !== null
+    ? current(array_filter($currentWeekScores, fn($entry) => $entry['score'] === $lowestWeekScore))
+    : null;
+$largestVictory = $currentWeekMargins ? max(array_column($currentWeekMargins, 'margin')) : null;
+$smallestDefeat = $currentWeekMargins ? min(array_column($currentWeekMargins, 'margin')) : null;
+$largestVictoryMatchup = $largestVictory !== null
+    ? current(array_filter($currentWeekMargins, fn($entry) => $entry['margin'] === $largestVictory))
+    : null;
+$smallestDefeatMatchup = $smallestDefeat !== null
+    ? current(array_filter($currentWeekMargins, fn($entry) => $entry['margin'] === $smallestDefeat))
+    : null;
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -41,11 +120,28 @@ function countLeagueTeams(array $data): int
         .toggle-btn { text-decoration: none; padding: 8px 16px; border-radius: 6px; color: #4a5568; font-weight: 500; font-size: 14px; transition: all 0.2s; }
         .toggle-btn:hover { background: #cbd5e1; }
         .toggle-btn.active { background: #fff; color: #1a202c; box-shadow: 0 2px 4px rgba(0,0,0,0.06); font-weight: 600; }
-        .league-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
-        .league-card { background: #fff; border-left: 4px solid #3182ce; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); padding: 18px; }
-        .league-card h2 { border: 0; margin: 0 0 10px; padding: 0; }
-        .league-card p { margin: 6px 0; }
-        .label { color: #718096; }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+        .stats-column h2 { margin-top: 0; }
+        .stat-list { display: grid; gap: 12px; }
+        .stat-card { background: #fff; border-left: 4px solid #3182ce; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); padding: 18px; }
+        .stat-heading { align-items: baseline; display: flex; gap: 12px; justify-content: space-between; }
+        .stat-card h3 { color: #1a202c; font-size: 16px; margin: 0 0 8px; }
+        .stat-league { color: #718096; flex-shrink: 0; font-size: 14px; margin-bottom: 8px; }
+        .stat-card p { color: #718096; margin: 0; }
+        .stat-primary { align-items: baseline; display: flex; gap: 12px; justify-content: space-between; }
+        .stat-owner { color: #1a202c; font-size: 18px; font-weight: 600; }
+        .stat-score { color: #2f855a; font-size: 18px; font-weight: 700; }
+        .stat-team { color: #718096; font-size: 13px; margin-top: 3px; padding-bottom: 3px; }
+        .stat-footnote { border-top: 1px solid #edf2f7; color: #718096; font-size: 12px; margin-top: 14px; padding-top: 10px; }
+        .margin-summary { color: #1a202c; font-size: 16px; line-height: 1.4; margin: 0 0 14px; }
+        .margin-summary strong { font-weight: 600; }
+        .margin-score { color: #2f855a; font-weight: 700; }
+        .stat-score.negative,
+        .margin-score.negative { color: #c53030; }
+        .matchup-row { color: #718096; display: flex; font-size: 12px; justify-content: space-between; padding-top: 5px; }
+        @media (max-width: 700px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -61,19 +157,89 @@ function countLeagueTeams(array $data): int
         <a href="stats" class="toggle-btn active" aria-current="page">Stats</a>
     </nav>
 
-    <h2>League Data Loaded</h2>
-    <div class="league-grid">
-        <?php foreach ($leagueData as $league): ?>
-            <section class="league-card">
-                <h2><?php echo htmlspecialchars($league['config']['name']); ?></h2>
-                <p><span class="label">Current week:</span> <?php echo htmlspecialchars((string)($league['data']['status']['currentMatchupPeriod'] ?? 'Unknown')); ?></p>
-                <p><span class="label">Teams loaded:</span> <?php echo countLeagueTeams($league['data']); ?></p>
-            </section>
-        <?php endforeach; ?>
-    </div>
+    <div class="stats-grid">
+        <section class="stats-column">
+            <h2>🥇 <?php echo $currentWeek !== null ? 'Week ' . htmlspecialchars((string)$currentWeek) : 'Current Week'; ?> Superlatives</h2>
+            <div class="stat-list">
+                <article class="stat-card">
+                    <div class="stat-heading">
+                        <h3>Highest Score</h3>
+                        <?php if ($highestWeekTeam): ?>
+                            <span class="stat-league"><?php echo htmlspecialchars($highestWeekTeam['league']); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($highestWeekTeam): ?>
+                        <div class="stat-primary">
+                            <span class="stat-owner"><?php echo htmlspecialchars($highestWeekTeam['owner']); ?></span>
+                            <span class="stat-score"><?php echo number_format($highestWeekTeam['score'], 2); ?></span>
+                        </div>
+                        <p class="stat-team"><?php echo htmlspecialchars($highestWeekTeam['team']); ?></p>
+                        <p class="stat-footnote">vs. <?php echo htmlspecialchars($highestWeekTeam['opponentOwner']); ?>, <?php echo htmlspecialchars($highestWeekTeam['opponent']); ?> - <?php echo number_format($highestWeekTeam['opponentScore'], 2); ?></p>
+                    <?php else: ?>
+                        <p>No current-week games available.</p>
+                    <?php endif; ?>
+                </article>
+                <article class="stat-card">
+                    <div class="stat-heading">
+                        <h3>Lowest Score</h3>
+                        <?php if ($lowestWeekTeam): ?>
+                            <span class="stat-league"><?php echo htmlspecialchars($lowestWeekTeam['league']); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($lowestWeekTeam): ?>
+                        <div class="stat-primary">
+                            <span class="stat-owner"><?php echo htmlspecialchars($lowestWeekTeam['owner']); ?></span>
+                            <span class="stat-score negative"><?php echo number_format($lowestWeekTeam['score'], 2); ?></span>
+                        </div>
+                        <p class="stat-team"><?php echo htmlspecialchars($lowestWeekTeam['team']); ?></p>
+                        <p class="stat-footnote">vs. <?php echo htmlspecialchars($lowestWeekTeam['opponentOwner']); ?>, <?php echo htmlspecialchars($lowestWeekTeam['opponent']); ?> - <?php echo number_format($lowestWeekTeam['opponentScore'], 2); ?></p>
+                    <?php else: ?>
+                        <p>No current-week games available.</p>
+                    <?php endif; ?>
+                </article>
+                <article class="stat-card">
+                    <div class="stat-heading">
+                        <h3>Largest Margin of Victory</h3>
+                        <?php if ($largestVictoryMatchup): ?>
+                            <span class="stat-league"><?php echo htmlspecialchars($largestVictoryMatchup['league']); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($largestVictoryMatchup): ?>
+                        <p class="margin-summary"><strong class="stat-owner"><?php echo htmlspecialchars($largestVictoryMatchup['winnerOwner']); ?></strong> <span class="margin-score"><?php echo number_format($largestVictoryMatchup['margin'], 2); ?></span>-point victory over <?php echo htmlspecialchars($largestVictoryMatchup['loserOwner']); ?></p>
+                        <div class="matchup-row"><span><?php echo htmlspecialchars($largestVictoryMatchup['winner']); ?></span><span><?php echo number_format($largestVictoryMatchup['winnerScore'], 2); ?></span></div>
+                        <div class="matchup-row"><span><?php echo htmlspecialchars($largestVictoryMatchup['loser']); ?></span><span><?php echo number_format($largestVictoryMatchup['loserScore'], 2); ?></span></div>
+                    <?php else: ?>
+                        <p>No completed victories available.</p>
+                    <?php endif; ?>
+                </article>
+                <article class="stat-card">
+                    <div class="stat-heading">
+                        <h3>Smallest Margin of Defeat</h3>
+                        <?php if ($smallestDefeatMatchup): ?>
+                            <span class="stat-league"><?php echo htmlspecialchars($smallestDefeatMatchup['league']); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($smallestDefeatMatchup): ?>
+                        <p class="margin-summary"><strong class="stat-owner"><?php echo htmlspecialchars($smallestDefeatMatchup['loserOwner']); ?></strong> <span class="margin-score negative"><?php echo number_format($smallestDefeatMatchup['margin'], 2); ?></span>-point loss to <?php echo htmlspecialchars($smallestDefeatMatchup['winnerOwner']); ?></p>
+                        <div class="matchup-row"><span><?php echo htmlspecialchars($smallestDefeatMatchup['winner']); ?></span><span><?php echo number_format($smallestDefeatMatchup['winnerScore'], 2); ?></span></div>
+                        <div class="matchup-row"><span><?php echo htmlspecialchars($smallestDefeatMatchup['loser']); ?></span><span><?php echo number_format($smallestDefeatMatchup['loserScore'], 2); ?></span></div>
+                    <?php else: ?>
+                        <p>No completed defeats available.</p>
+                    <?php endif; ?>
+                </article>
+            </div>
+        </section>
 
-    <h2>Stats Framework</h2>
-    <p>All three league datasets are loaded and available in <code>$leagueData</code> for the upcoming superleague statistics.</p>
+        <section class="stats-column">
+            <h2>📈 Season Leaders</h2>
+            <div class="stat-list">
+                <article class="stat-card">
+                    <h3>Coming Soon</h3>
+                    <p>Check back later in the season</p>
+                </article>
+            </div>
+        </section>
+    </div>
 </div>
 </body>
 </html>
