@@ -23,6 +23,8 @@ foreach ($leagueData as $league) {
 
 $currentWeekScores = [];
 $currentWeekMargins = [];
+$currentWeekTopPlayer = null;
+$currentWeekTopPlayerOwners = [];
 $allCurrentWeekGamesFinal = true;
 foreach ($leagueData as $league) {
     $data = $league['data'];
@@ -52,6 +54,40 @@ foreach ($leagueData as $league) {
 
         $homeId = $matchup['home']['teamId'] ?? null;
         $awayId = $matchup['away']['teamId'] ?? null;
+
+        foreach ([
+            ['teamId' => $homeId, 'entries' => $matchup['home']['rosterForCurrentScoringPeriod']['entries'] ?? []],
+            ['teamId' => $awayId, 'entries' => $matchup['away']['rosterForCurrentScoringPeriod']['entries'] ?? []]
+        ] as $side) {
+            $teamId = $side['teamId'];
+            if ($teamId === null || !isset($teams[$teamId])) {
+                continue;
+            }
+
+            foreach ($side['entries'] as $entry) {
+                $playerPoolEntry = $entry['playerPoolEntry'] ?? [];
+                $player = $playerPoolEntry['player'] ?? [];
+                $playerScore = $playerPoolEntry['appliedStatTotal'] ?? null;
+
+                if (($playerPoolEntry['onTeamId'] ?? null) != $teamId || $playerScore === null || empty($player['fullName'])) {
+                    continue;
+                }
+
+                $playerScore = (float)$playerScore;
+                $leagueId = $league['config']['id'];
+                if ($currentWeekTopPlayer === null || $playerScore > $currentWeekTopPlayer['score']) {
+                    $currentWeekTopPlayer = [
+                        'league' => $league['config']['name'],
+                        'player' => $player['fullName'],
+                        'score' => $playerScore
+                    ];
+                    $currentWeekTopPlayerOwners = [$leagueId => $teams[$teamId]['owner']];
+                } elseif ($playerScore === $currentWeekTopPlayer['score'] && !isset($currentWeekTopPlayerOwners[$leagueId])) {
+                    $currentWeekTopPlayerOwners[$leagueId] = $teams[$teamId]['owner'];
+                }
+            }
+        }
+
         $homeScore = (float)($matchup['home']['pointsByScoringPeriod'][$week] ?? 0);
         $awayScore = (float)($matchup['away']['pointsByScoringPeriod'][$week] ?? 0);
 
@@ -141,6 +177,8 @@ $smallestDefeatMatchup = $smallestDefeat !== null
         .stat-score { color: #2f855a; font-size: 18px; font-weight: 700; }
         .stat-team { color: #718096; font-size: 13px; margin-top: 3px; padding-bottom: 3px; }
         .stat-footnote { border-top: 1px solid #edf2f7; color: #718096; font-size: 12px; margin-top: 14px; padding-top: 10px; }
+        .player-league-name { color: #718096; font-size: 12px; font-weight: 600; margin: 0 0 6px; }
+        .player-team-row { color: #718096; font-size: 13px; margin-top: 10px; padding-top: 10px; }
         .margin-summary { color: #1a202c; font-size: 16px; line-height: 1.4; margin: 0 0 14px; }
         .margin-summary strong { font-weight: 600; }
         .margin-score { color: #2f855a; font-weight: 700; }
@@ -149,6 +187,9 @@ $smallestDefeatMatchup = $smallestDefeat !== null
         .matchup-row { color: #718096; display: flex; font-size: 12px; justify-content: space-between; padding-top: 5px; }
         @media (max-width: 700px) {
             .stats-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 600px) {
+            body { padding: 12px; }
         }
     </style>
 </head>
@@ -233,6 +274,20 @@ $smallestDefeatMatchup = $smallestDefeat !== null
                         <div class="matchup-row"><span><?php echo htmlspecialchars($smallestDefeatMatchup['loser']); ?></span><span><?php echo number_format($smallestDefeatMatchup['loserScore'], 2); ?></span></div>
                     <?php else: ?>
                         <p>No completed defeats available.</p>
+                    <?php endif; ?>
+                </article>
+                <article class="stat-card">
+                    <h3>Highest Scoring Player</h3>
+                    <?php if ($currentWeekTopPlayer): ?>
+                        <div class="stat-primary">
+                            <span class="stat-owner"><?php echo htmlspecialchars($currentWeekTopPlayer['player']); ?></span>
+                            <span class="stat-score"><?php echo number_format($currentWeekTopPlayer['score'], 2); ?></span>
+                        </div>
+                        <?php foreach ($leagues as $league): ?>
+                            <p class="player-team-row"><?php echo htmlspecialchars($league['name']); ?>: <?php echo htmlspecialchars($currentWeekTopPlayerOwners[$league['id']] ?? 'Free Agent'); ?></p>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <p>No owned players with scores available.</p>
                     <?php endif; ?>
                 </article>
             </div>
