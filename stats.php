@@ -23,6 +23,7 @@ foreach ($leagueData as $league) {
 
 $currentWeekScores = [];
 $currentWeekMargins = [];
+$allCurrentWeekGamesFinal = true;
 foreach ($leagueData as $league) {
     $data = $league['data'];
     $week = $data['status']['currentMatchupPeriod'] ?? $currentWeek;
@@ -43,6 +44,10 @@ foreach ($leagueData as $league) {
     foreach ($data['schedule'] ?? [] as $matchup) {
         if (($matchup['matchupPeriodId'] ?? null) != $week) {
             continue;
+        }
+
+        if (($matchup['winner'] ?? 'UNDECIDED') === 'UNDECIDED') {
+            $allCurrentWeekGamesFinal = false;
         }
 
         $homeId = $matchup['home']['teamId'] ?? null;
@@ -122,6 +127,9 @@ $smallestDefeatMatchup = $smallestDefeat !== null
         .toggle-btn.active { background: #fff; color: #1a202c; box-shadow: 0 2px 4px rgba(0,0,0,0.06); font-weight: 600; }
         .stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
         .stats-column h2 { margin-top: 0; }
+        .superlative-heading { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; }
+        .superlative-heading > span { flex: 1 1 auto; min-width: min-content; }
+        .superlative-heading small { color: #718096; flex: 0 0 auto; font-size: 12px; font-weight: normal; }
         .stat-list { display: grid; gap: 12px; }
         .stat-card { background: #fff; border-left: 4px solid #3182ce; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); padding: 18px; }
         .stat-heading { align-items: baseline; display: flex; gap: 12px; justify-content: space-between; }
@@ -159,7 +167,7 @@ $smallestDefeatMatchup = $smallestDefeat !== null
 
     <div class="stats-grid">
         <section class="stats-column">
-            <h2>🥇 <?php echo $currentWeek !== null ? 'Week ' . htmlspecialchars((string)$currentWeek) : 'Current Week'; ?> Superlatives</h2>
+            <h2 class="superlative-heading"><span>🥇 <?php echo $currentWeek !== null ? 'Week ' . htmlspecialchars((string)$currentWeek) : 'Current Week'; ?> Superlatives</span><?php if (!$allCurrentWeekGamesFinal): ?> <small>Games in progress</small><?php endif; ?></h2>
             <div class="stat-list">
                 <article class="stat-card">
                     <div class="stat-heading">

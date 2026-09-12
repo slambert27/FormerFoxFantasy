@@ -158,7 +158,7 @@ if (!empty($data['schedule'])) {
         .roster-toggle { display: block; margin: 0 auto; border: 0; background: transparent; color: #4a5568; cursor: pointer; font-size: 16px; padding: 4px 8px; }
         .roster-toggle span[aria-hidden="true"] { display: inline-block; transform: rotate(90deg); }
         .roster-toggle[aria-expanded="true"] span[aria-hidden="true"] { transform: rotate(270deg); }
-        .roster-row td { padding: 0 15px 12px; }
+        .roster-row td { padding: 12px 15px; }
         .roster-table { width: min(100%, 520px); margin: 0 auto; box-shadow: none; }
         .roster-table th,
         .roster-table td { padding-top: 8px; padding-bottom: 8px; }
