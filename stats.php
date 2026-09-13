@@ -168,6 +168,10 @@ $smallestDefeatMatchup = $smallestDefeat !== null
         .superlative-heading small { color: #718096; flex: 0 0 auto; font-size: 12px; font-weight: normal; }
         .stat-list { display: grid; gap: 12px; }
         .stat-card { background: #fff; border-left: 4px solid #3182ce; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); padding: 18px; }
+        .current-week-in-progress .stat-card p,
+        .current-week-in-progress .stat-card .stat-league,
+        .current-week-in-progress .stat-card .stat-primary,
+        .current-week-in-progress .stat-card .matchup-row { opacity: 0.5; }
         .stat-heading { align-items: baseline; display: flex; gap: 12px; justify-content: space-between; }
         .stat-card h3 { color: #1a202c; font-size: 16px; margin: 0 0 8px; }
         .stat-league { color: #718096; flex-shrink: 0; font-size: 14px; margin-bottom: 8px; }
@@ -207,7 +211,7 @@ $smallestDefeatMatchup = $smallestDefeat !== null
     </nav>
 
     <div class="stats-grid">
-        <section class="stats-column">
+        <section class="stats-column<?php echo !$allCurrentWeekGamesFinal ? ' current-week-in-progress' : ''; ?>">
             <h2 class="superlative-heading"><span>🥇 <?php echo $currentWeek !== null ? 'Week ' . htmlspecialchars((string)$currentWeek) : 'Current Week'; ?> Superlatives</span><?php if (!$allCurrentWeekGamesFinal): ?> <small>Games in progress</small><?php endif; ?></h2>
             <div class="stat-list">
                 <article class="stat-card">

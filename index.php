@@ -153,6 +153,7 @@ if (!empty($data['schedule'])) {
         .matchup-team-info > small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .team-owner { color: #718096; font-size: 12px; font-weight: normal;}
         .matchup-team.winner { font-weight: bold; color: #2f855a; }
+        .matchup-team.winner.in-progress { color: #111; }
         .score { display: flex; flex-shrink: 0; flex-direction: column; align-items: flex-end; font-size: 16px; font-weight: 600; white-space: nowrap; }
         .projected-score { color: #718096; font-size: 12px; font-weight: normal; }
         .roster-toggle { display: block; margin: 0 auto; border: 0; background: transparent; color: #4a5568; cursor: pointer; font-size: 16px; padding: 4px 8px; }
@@ -209,16 +210,17 @@ if (!empty($data['schedule'])) {
             $awayScore = $match['away']['pointsByScoringPeriod'][$currentWeek];
             $homeProjected = $match['home']['totalProjectedPointsLive'] ?? null;
             $awayProjected = $match['away']['totalProjectedPointsLive'] ?? null;
-            $homeComparisonScore = $homeProjected ?? $homeScore;
-            $awayComparisonScore = $awayProjected ?? $awayScore;
+            $matchupFinal = ($match['winner'] ?? 'UNDECIDED') !== 'UNDECIDED';
+            $homeComparisonScore = $matchupFinal ? $homeScore : ($homeProjected ?? $homeScore);
+            $awayComparisonScore = $matchupFinal ? $awayScore : ($awayProjected ?? $awayScore);
             
-            // Use live projected points to determine the current leader.
+            // Use actual points for final games and projected points for games in progress.
             $homeWinning = $homeComparisonScore > $awayComparisonScore;
             $awayWinning = $awayComparisonScore > $homeComparisonScore;
         ?>
         <a class="matchup-card" href="https://fantasy.espn.com/football/fantasycast?leagueId=<?php echo urlencode($activeLeagueId); ?>&matchupPeriodId=<?php echo urlencode($currentWeek); ?>&seasonId=<?php echo urlencode($season); ?>&teamId=<?php echo urlencode($homeId); ?>" target="_blank" rel="noopener noreferrer">
             <!-- Away Team Row -->
-            <div class="matchup-team <?php echo $awayWinning ? 'winner' : ''; ?>">
+            <div class="matchup-team <?php echo $awayWinning ? 'winner' . (!$matchupFinal ? ' in-progress' : '') : ''; ?>">
                 <span class="matchup-team-info">
                     <span><?php echo htmlspecialchars($teams[$awayId]['name'] ?? 'Away Team'); ?></span>
                     <small class="team-owner"><?php echo htmlspecialchars($teams[$awayId]['owner'] ?? 'Unknown'); ?></small>
@@ -232,7 +234,7 @@ if (!empty($data['schedule'])) {
             </div>
                         
             <!-- Home Team Row -->
-            <div class="matchup-team <?php echo $homeWinning ? 'winner' : ''; ?>">
+            <div class="matchup-team <?php echo $homeWinning ? 'winner' . (!$matchupFinal ? ' in-progress' : '') : ''; ?>">
                 <span class="matchup-team-info">
                     <span><?php echo htmlspecialchars($teams[$homeId]['name'] ?? 'Home Team'); ?></span>
                     <small class="team-owner"><?php echo htmlspecialchars($teams[$homeId]['owner'] ?? 'Unknown'); ?></small>
