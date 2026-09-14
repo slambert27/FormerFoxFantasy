@@ -34,6 +34,11 @@ $data = loadLeagueData($activeLeagueId, $season);
 
 // Extract global status details
 $currentWeek = $data['status']['currentMatchupPeriod'];
+$currentScoringPeriod = (int)($data['scoringPeriodId'] ?? $currentWeek);
+$selectedScoringPeriod = filter_var($_GET['scoring_period'] ?? $currentScoringPeriod, FILTER_VALIDATE_INT);
+if ($selectedScoringPeriod === false || $selectedScoringPeriod < 1 || $selectedScoringPeriod > $currentScoringPeriod) {
+    $selectedScoringPeriod = $currentScoringPeriod;
+}
 
 // 4. DATA PROCESSING
 // Map Team IDs to their actual names so we can display them easily later
@@ -106,7 +111,7 @@ foreach ($data['teams'] as $teamIndex => $t) {
 $currentMatchups = [];
 if (!empty($data['schedule'])) {
     foreach ($data['schedule'] as $matchup) {
-        if ($matchup['matchupPeriodId'] == $currentWeek) {
+        if ($matchup['matchupPeriodId'] == $selectedScoringPeriod) {
             $currentMatchups[] = $matchup;
         }
     }
@@ -129,6 +134,10 @@ if (!empty($data['schedule'])) {
         .toggle-btn { text-decoration: none; padding: 8px 16px; border-radius: 6px; color: #4a5568; font-weight: 500; font-size: 14px; transition: all 0.2s; }
         .toggle-btn:hover { background: #cbd5e1; }
         .toggle-btn.active { background: #fff; color: #1a202c; box-shadow: 0 2px 4px rgba(0,0,0,0.06); font-weight: 600; }
+        .scoreboard-heading { align-items: baseline; border-bottom: 2px solid #ddd; display: flex; gap: 12px; justify-content: space-between; margin: 30px 0 20px; }
+        .scoreboard-heading h2 { border-bottom: 0; flex: 1; margin: 0; }
+        .scoring-period-selector { flex-shrink: 0; margin: 0 0 8px; }
+        .scoring-period-selector select { border: 1px solid #cbd5e1; border-radius: 6px; color: #1a202c; font: inherit; padding: 6px 8px; }
         
         /* Layout Tables & Scoreboard Cards */
         table { width: 100%; border-collapse: collapse; background: #fff; margin-bottom: 40px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-radius: 6px; overflow: hidden; }
@@ -199,17 +208,29 @@ if (!empty($data['schedule'])) {
         <a href="stats" class="toggle-btn">Stats</a>
     </div>
 
-    <!-- SECTION 1: CURRENT WEEK SCORES -->
-    <h2>🏟️ Week <?php echo $currentWeek; ?> Scoreboard</h2>
+    <!-- SECTION 1: SELECTED WEEK SCORES -->
+    <div class="scoreboard-heading">
+        <h2>🏟️ Week <?php echo $selectedScoringPeriod; ?> Scoreboard</h2>
+        <form class="scoring-period-selector" method="get">
+            <input type="hidden" name="league" value="<?php echo htmlspecialchars($activeLeagueId); ?>">
+            <select id="scoring-period" name="scoring_period" aria-label="Select scoreboard week" onchange="this.form.submit()">
+                <?php for ($scoringPeriod = 1; $scoringPeriod <= $currentScoringPeriod; $scoringPeriod++): ?>
+                    <option value="<?php echo $scoringPeriod; ?>"<?php echo $scoringPeriod === $selectedScoringPeriod ? ' selected' : ''; ?>>
+                        Week <?php echo $scoringPeriod; ?>
+                    </option>
+                <?php endfor; ?>
+            </select>
+        </form>
+    </div>
     <div class="matchups-grid">
         <?php foreach ($currentMatchups as $match): 
             $homeId = $match['home']['teamId'];
             $awayId = $match['away']['teamId'];
             
-            $homeScore = $match['home']['pointsByScoringPeriod'][$currentWeek];
-            $awayScore = $match['away']['pointsByScoringPeriod'][$currentWeek];
-            $homeProjected = $match['home']['totalProjectedPointsLive'] ?? null;
-            $awayProjected = $match['away']['totalProjectedPointsLive'] ?? null;
+            $homeScore = (float)($match['home']['pointsByScoringPeriod'][$selectedScoringPeriod] ?? 0);
+            $awayScore = (float)($match['away']['pointsByScoringPeriod'][$selectedScoringPeriod] ?? 0);
+            $homeProjected = $selectedScoringPeriod === $currentScoringPeriod ? ($match['home']['totalProjectedPointsLive'] ?? null) : null;
+            $awayProjected = $selectedScoringPeriod === $currentScoringPeriod ? ($match['away']['totalProjectedPointsLive'] ?? null) : null;
             $matchupFinal = ($match['winner'] ?? 'UNDECIDED') !== 'UNDECIDED';
             $homeComparisonScore = $matchupFinal ? $homeScore : ($homeProjected ?? $homeScore);
             $awayComparisonScore = $matchupFinal ? $awayScore : ($awayProjected ?? $awayScore);
@@ -218,7 +239,7 @@ if (!empty($data['schedule'])) {
             $homeWinning = $homeComparisonScore > $awayComparisonScore;
             $awayWinning = $awayComparisonScore > $homeComparisonScore;
         ?>
-        <a class="matchup-card" href="https://fantasy.espn.com/football/fantasycast?leagueId=<?php echo urlencode($activeLeagueId); ?>&matchupPeriodId=<?php echo urlencode($currentWeek); ?>&seasonId=<?php echo urlencode($season); ?>&teamId=<?php echo urlencode($homeId); ?>" target="_blank" rel="noopener noreferrer">
+        <a class="matchup-card" href="https://fantasy.espn.com/football/fantasycast?leagueId=<?php echo urlencode($activeLeagueId); ?>&matchupPeriodId=<?php echo urlencode($selectedScoringPeriod); ?>&seasonId=<?php echo urlencode($season); ?>&teamId=<?php echo urlencode($homeId); ?>" target="_blank" rel="noopener noreferrer">
             <!-- Away Team Row -->
             <div class="matchup-team <?php echo $awayWinning ? 'winner' . (!$matchupFinal ? ' in-progress' : '') : ''; ?>">
                 <span class="matchup-team-info">
