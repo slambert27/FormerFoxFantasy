@@ -20,6 +20,10 @@ foreach ($leagueData as $league) {
         $currentWeek = max($currentWeek ?? $week, $week);
     }
 }
+$selectedScoringPeriod = filter_var($_GET['scoring_period'] ?? $currentWeek, FILTER_VALIDATE_INT);
+if ($selectedScoringPeriod === false || $selectedScoringPeriod < 1 || $selectedScoringPeriod > $currentWeek) {
+    $selectedScoringPeriod = $currentWeek;
+}
 
 $currentWeekScores = [];
 $currentWeekMargins = [];
@@ -28,7 +32,7 @@ $currentWeekTopPlayerOwners = [];
 $allCurrentWeekGamesFinal = true;
 foreach ($leagueData as $league) {
     $data = $league['data'];
-    $week = $data['status']['currentMatchupPeriod'] ?? $currentWeek;
+    $week = $selectedScoringPeriod;
     $members = [];
     $teams = [];
 
@@ -58,8 +62,8 @@ foreach ($leagueData as $league) {
         $awayScore = (float)($matchup['away']['pointsByScoringPeriod'][$week] ?? 0);
 
         foreach ([
-            ['teamId' => $homeId, 'entries' => $matchup['home']['rosterForCurrentScoringPeriod']['entries'] ?? []],
-            ['teamId' => $awayId, 'entries' => $matchup['away']['rosterForCurrentScoringPeriod']['entries'] ?? []]
+            ['teamId' => $homeId, 'entries' => $matchup['home']['rosterForMatchupPeriod']['entries'] ?? []],
+            ['teamId' => $awayId, 'entries' => $matchup['away']['rosterForMatchupPeriod']['entries'] ?? []]
         ] as $side) {
             $teamId = $side['teamId'];
             if ($teamId === null || !isset($teams[$teamId])) {
@@ -179,9 +183,12 @@ $fewestPointsInWinMatchup = $fewestPointsInWin !== null
         .toggle-btn.active { background: #fff; color: #1a202c; box-shadow: 0 2px 4px rgba(0,0,0,0.06); font-weight: 600; }
         .stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
         .stats-column h2 { margin-top: 0; }
-        .superlative-heading { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: space-between; }
-        .superlative-heading > span { flex: 1 1 auto; min-width: min-content; }
-        .superlative-heading small { color: #718096; flex: 0 0 auto; font-size: 12px; font-weight: normal; }
+        .scoreboard-heading { align-items: baseline; border-bottom: 2px solid #ddd; display: flex; gap: 12px; justify-content: space-between; margin: 30px 0 20px; }
+        .stats-column .scoreboard-heading { margin-top: 0; }
+        .scoreboard-heading h2 { border-bottom: 0; flex: 1; margin: 0; }
+        .scoreboard-heading form { flex-shrink: 0; margin: 0 0 8px; }
+        .scoreboard-heading select { border: 1px solid #cbd5e1; border-radius: 6px; color: #1a202c; font-family: inherit; font-size: 15px; font-weight: 600; padding: 10px 14px; }
+        .games-in-progress { color: #718096; font-size: 12px; margin: -12px 0 12px; }
         .stat-list { display: grid; gap: 12px; }
         .stat-card { background: #fff; border-left: 4px solid #3182ce; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); padding: 18px; }
         .current-week-in-progress .stat-card p,
@@ -231,7 +238,21 @@ $fewestPointsInWinMatchup = $fewestPointsInWin !== null
 
     <div class="stats-grid">
         <section class="stats-column<?php echo !$allCurrentWeekGamesFinal ? ' current-week-in-progress' : ''; ?>">
-            <h2 class="superlative-heading"><span>🥇 <?php echo $currentWeek !== null ? 'Week ' . htmlspecialchars((string)$currentWeek) : 'Current Week'; ?> Superlatives</span><?php if (!$allCurrentWeekGamesFinal): ?> <small>Games in progress</small><?php endif; ?></h2>
+            <div class="scoreboard-heading">
+                <h2>🥇 <?php echo $selectedScoringPeriod !== null ? 'Week ' . htmlspecialchars((string)$selectedScoringPeriod) : 'Current Week'; ?> Superlatives</h2>
+                <form method="get">
+                    <select name="scoring_period" aria-label="Select stats week" onchange="this.form.submit()">
+                        <?php for ($scoringPeriod = 1; $scoringPeriod <= $currentWeek; $scoringPeriod++): ?>
+                            <option value="<?php echo $scoringPeriod; ?>"<?php echo $scoringPeriod === $selectedScoringPeriod ? ' selected' : ''; ?>>
+                                Week <?php echo $scoringPeriod; ?>
+                            </option>
+                        <?php endfor; ?>
+                    </select>
+                </form>
+            </div>
+            <?php if (!$allCurrentWeekGamesFinal): ?>
+                <p class="games-in-progress">Games in progress</p>
+            <?php endif; ?>
             <div class="stat-list">
                 <article class="stat-card">
                     <div class="stat-heading">

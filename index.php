@@ -137,7 +137,7 @@ if (!empty($data['schedule'])) {
         .scoreboard-heading { align-items: baseline; border-bottom: 2px solid #ddd; display: flex; gap: 12px; justify-content: space-between; margin: 30px 0 20px; }
         .scoreboard-heading h2 { border-bottom: 0; flex: 1; margin: 0; }
         .scoring-period-selector { flex-shrink: 0; margin: 0 0 8px; }
-        .scoring-period-selector select { border: 1px solid #cbd5e1; border-radius: 6px; color: #1a202c; font: inherit; padding: 6px 8px; }
+        .scoring-period-selector select { border: 1px solid #cbd5e1; border-radius: 6px; color: #1a202c; font-family: inherit; font-size: 15px; font-weight: 600; padding: 10px 14px; }
         
         /* Layout Tables & Scoreboard Cards */
         table { width: 100%; border-collapse: collapse; background: #fff; margin-bottom: 40px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-radius: 6px; overflow: hidden; }
