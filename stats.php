@@ -54,6 +54,8 @@ foreach ($leagueData as $league) {
 
         $homeId = $matchup['home']['teamId'] ?? null;
         $awayId = $matchup['away']['teamId'] ?? null;
+        $homeScore = (float)($matchup['home']['pointsByScoringPeriod'][$week] ?? 0);
+        $awayScore = (float)($matchup['away']['pointsByScoringPeriod'][$week] ?? 0);
 
         foreach ([
             ['teamId' => $homeId, 'entries' => $matchup['home']['rosterForCurrentScoringPeriod']['entries'] ?? []],
@@ -75,21 +77,27 @@ foreach ($leagueData as $league) {
 
                 $playerScore = (float)$playerScore;
                 $leagueId = $league['config']['id'];
+                $gameResult = $teamId === $homeId
+                    ? ($homeScore > $awayScore ? 'W' : ($homeScore < $awayScore ? 'L' : 'T'))
+                    : ($awayScore > $homeScore ? 'W' : ($awayScore < $homeScore ? 'L' : 'T'));
                 if ($currentWeekTopPlayer === null || $playerScore > $currentWeekTopPlayer['score']) {
                     $currentWeekTopPlayer = [
                         'league' => $league['config']['name'],
                         'player' => $player['fullName'],
                         'score' => $playerScore
                     ];
-                    $currentWeekTopPlayerOwners = [$leagueId => $teams[$teamId]['owner']];
+                    $currentWeekTopPlayerOwners = [$leagueId => [
+                        'owner' => $teams[$teamId]['owner'],
+                        'result' => $gameResult
+                    ]];
                 } elseif ($playerScore === $currentWeekTopPlayer['score'] && !isset($currentWeekTopPlayerOwners[$leagueId])) {
-                    $currentWeekTopPlayerOwners[$leagueId] = $teams[$teamId]['owner'];
+                    $currentWeekTopPlayerOwners[$leagueId] = [
+                        'owner' => $teams[$teamId]['owner'],
+                        'result' => $gameResult
+                    ];
                 }
             }
         }
-
-        $homeScore = (float)($matchup['home']['pointsByScoringPeriod'][$week] ?? 0);
-        $awayScore = (float)($matchup['away']['pointsByScoringPeriod'][$week] ?? 0);
 
         if ($homeId !== null && $awayId !== null) {
             if ($homeScore !== $awayScore) {
@@ -191,9 +199,12 @@ $fewestPointsInWinMatchup = $fewestPointsInWin !== null
         .stat-footnote { border-top: 1px solid #edf2f7; color: #718096; font-size: 12px; margin-top: 14px; padding-top: 10px; }
         .player-league-name { color: #718096; font-size: 12px; font-weight: 600; margin: 0 0 6px; }
         .player-team-row { color: #718096; font-size: 13px; margin-top: 10px; padding-top: 10px; }
+        .player-result.w { color: #2f855a; font-weight: 700; }
+        .player-result.l { color: #c53030; font-weight: 700; }
         .margin-summary { color: #1a202c; font-size: 16px; line-height: 1.4; margin: 0 0 14px; }
         .margin-summary strong { font-weight: 600; }
         .margin-score { color: #2f855a; font-weight: 700; }
+        .margin-matchup-list { border-top: 1px solid #edf2f7; margin-top: 14px; padding-top: 10px; }
         .stat-score.negative,
         .margin-score.negative { color: #c53030; }
         .matchup-row { color: #718096; display: flex; font-size: 12px; justify-content: space-between; padding-top: 5px; }
@@ -248,9 +259,14 @@ $fewestPointsInWinMatchup = $fewestPointsInWin !== null
                         <?php endif; ?>
                     </div>
                     <?php if ($largestVictoryMatchup): ?>
-                        <p class="margin-summary"><strong class="stat-owner"><?php echo htmlspecialchars($largestVictoryMatchup['winnerOwner']); ?></strong> <span class="margin-score"><?php echo number_format($largestVictoryMatchup['margin'], 2); ?></span>-point victory over <?php echo htmlspecialchars($largestVictoryMatchup['loserOwner']); ?></p>
-                        <div class="matchup-row"><span><?php echo htmlspecialchars($largestVictoryMatchup['winner']); ?></span><span><?php echo number_format($largestVictoryMatchup['winnerScore'], 2); ?></span></div>
-                        <div class="matchup-row"><span><?php echo htmlspecialchars($largestVictoryMatchup['loser']); ?></span><span><?php echo number_format($largestVictoryMatchup['loserScore'], 2); ?></span></div>
+                        <div class="stat-primary">
+                            <span class="stat-owner"><?php echo htmlspecialchars($largestVictoryMatchup['winnerOwner']); ?></span>
+                            <span class="stat-score"><?php echo number_format($largestVictoryMatchup['margin'], 2); ?></span>
+                        </div>
+                        <div class="margin-matchup-list">
+                            <div class="matchup-row"><span><?php echo htmlspecialchars($largestVictoryMatchup['winner']); ?></span><span><?php echo number_format($largestVictoryMatchup['winnerScore'], 2); ?></span></div>
+                            <div class="matchup-row"><span><?php echo htmlspecialchars($largestVictoryMatchup['loser']); ?></span><span><?php echo number_format($largestVictoryMatchup['loserScore'], 2); ?></span></div>
+                        </div>
                     <?php else: ?>
                         <p>No completed victories available.</p>
                     <?php endif; ?>
@@ -299,9 +315,14 @@ $fewestPointsInWinMatchup = $fewestPointsInWin !== null
                         <?php endif; ?>
                     </div>
                     <?php if ($smallestDefeatMatchup): ?>
-                        <p class="margin-summary"><strong class="stat-owner"><?php echo htmlspecialchars($smallestDefeatMatchup['loserOwner']); ?></strong> <span class="margin-score negative"><?php echo number_format($smallestDefeatMatchup['margin'], 2); ?></span>-point loss to <?php echo htmlspecialchars($smallestDefeatMatchup['winnerOwner']); ?></p>
-                        <div class="matchup-row"><span><?php echo htmlspecialchars($smallestDefeatMatchup['winner']); ?></span><span><?php echo number_format($smallestDefeatMatchup['winnerScore'], 2); ?></span></div>
-                        <div class="matchup-row"><span><?php echo htmlspecialchars($smallestDefeatMatchup['loser']); ?></span><span><?php echo number_format($smallestDefeatMatchup['loserScore'], 2); ?></span></div>
+                        <div class="stat-primary">
+                            <span class="stat-owner"><?php echo htmlspecialchars($smallestDefeatMatchup['loserOwner']); ?></span>
+                            <span class="stat-score negative"><?php echo number_format($smallestDefeatMatchup['margin'], 2); ?></span>
+                        </div>
+                        <div class="margin-matchup-list">
+                            <div class="matchup-row"><span><?php echo htmlspecialchars($smallestDefeatMatchup['winner']); ?></span><span><?php echo number_format($smallestDefeatMatchup['winnerScore'], 2); ?></span></div>
+                            <div class="matchup-row"><span><?php echo htmlspecialchars($smallestDefeatMatchup['loser']); ?></span><span><?php echo number_format($smallestDefeatMatchup['loserScore'], 2); ?></span></div>
+                        </div>
                     <?php else: ?>
                         <p>No completed defeats available.</p>
                     <?php endif; ?>
@@ -332,7 +353,8 @@ $fewestPointsInWinMatchup = $fewestPointsInWin !== null
                             <span class="stat-score"><?php echo number_format($currentWeekTopPlayer['score'], 2); ?></span>
                         </div>
                         <?php foreach ($leagues as $league): ?>
-                            <p class="player-team-row"><?php echo htmlspecialchars($league['name']); ?>: <?php echo htmlspecialchars($currentWeekTopPlayerOwners[$league['id']] ?? 'Free Agent'); ?></p>
+                            <?php $playerTeam = $currentWeekTopPlayerOwners[$league['id']] ?? null; ?>
+                            <p class="player-team-row"><?php echo htmlspecialchars($league['name']); ?>: <?php echo htmlspecialchars($playerTeam['owner'] ?? 'Free Agent'); ?><?php if ($playerTeam): ?> <span class="player-result <?php echo strtolower($playerTeam['result']); ?>"><?php echo htmlspecialchars($playerTeam['result']); ?></span><?php endif; ?></p>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <p>No owned players with scores available.</p>
