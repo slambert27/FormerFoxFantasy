@@ -144,6 +144,14 @@ $largestVictoryMatchup = $largestVictory !== null
 $smallestDefeatMatchup = $smallestDefeat !== null
     ? current(array_filter($currentWeekMargins, fn($entry) => $entry['margin'] === $smallestDefeat))
     : null;
+$mostPointsInLoss = $currentWeekMargins ? max(array_column($currentWeekMargins, 'loserScore')) : null;
+$mostPointsInLossMatchup = $mostPointsInLoss !== null
+    ? current(array_filter($currentWeekMargins, fn($entry) => $entry['loserScore'] === $mostPointsInLoss))
+    : null;
+$fewestPointsInWin = $currentWeekMargins ? min(array_column($currentWeekMargins, 'winnerScore')) : null;
+$fewestPointsInWinMatchup = $fewestPointsInWin !== null
+    ? current(array_filter($currentWeekMargins, fn($entry) => $entry['winnerScore'] === $fewestPointsInWin))
+    : null;
 
 ?>
 <!DOCTYPE html>
@@ -234,24 +242,6 @@ $smallestDefeatMatchup = $smallestDefeat !== null
                 </article>
                 <article class="stat-card">
                     <div class="stat-heading">
-                        <h3>Lowest Score</h3>
-                        <?php if ($lowestWeekTeam): ?>
-                            <span class="stat-league"><?php echo htmlspecialchars($lowestWeekTeam['league']); ?></span>
-                        <?php endif; ?>
-                    </div>
-                    <?php if ($lowestWeekTeam): ?>
-                        <div class="stat-primary">
-                            <span class="stat-owner"><?php echo htmlspecialchars($lowestWeekTeam['owner']); ?></span>
-                            <span class="stat-score negative"><?php echo number_format($lowestWeekTeam['score'], 2); ?></span>
-                        </div>
-                        <p class="stat-team"><?php echo htmlspecialchars($lowestWeekTeam['team']); ?></p>
-                        <p class="stat-footnote">vs. <?php echo htmlspecialchars($lowestWeekTeam['opponentOwner']); ?>, <?php echo htmlspecialchars($lowestWeekTeam['opponent']); ?> - <?php echo number_format($lowestWeekTeam['opponentScore'], 2); ?></p>
-                    <?php else: ?>
-                        <p>No current-week games available.</p>
-                    <?php endif; ?>
-                </article>
-                <article class="stat-card">
-                    <div class="stat-heading">
                         <h3>Largest Margin of Victory</h3>
                         <?php if ($largestVictoryMatchup): ?>
                             <span class="stat-league"><?php echo htmlspecialchars($largestVictoryMatchup['league']); ?></span>
@@ -267,6 +257,42 @@ $smallestDefeatMatchup = $smallestDefeat !== null
                 </article>
                 <article class="stat-card">
                     <div class="stat-heading">
+                        <h3>Fewest Points in Victory</h3>
+                        <?php if ($fewestPointsInWinMatchup): ?>
+                            <span class="stat-league"><?php echo htmlspecialchars($fewestPointsInWinMatchup['league']); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($fewestPointsInWinMatchup): ?>
+                        <div class="stat-primary">
+                            <span class="stat-owner"><?php echo htmlspecialchars($fewestPointsInWinMatchup['winnerOwner']); ?></span>
+                            <span class="stat-score"><?php echo number_format($fewestPointsInWinMatchup['winnerScore'], 2); ?></span>
+                        </div>
+                        <p class="stat-team"><?php echo htmlspecialchars($fewestPointsInWinMatchup['winner']); ?></p>
+                        <p class="stat-footnote">vs. <?php echo htmlspecialchars($fewestPointsInWinMatchup['loserOwner']); ?>, <?php echo htmlspecialchars($fewestPointsInWinMatchup['loser']); ?> - <?php echo number_format($fewestPointsInWinMatchup['loserScore'], 2); ?></p>
+                    <?php else: ?>
+                        <p>No current-week wins available.</p>
+                    <?php endif; ?>
+                </article>
+                <article class="stat-card">
+                    <div class="stat-heading">
+                        <h3>Most Points in Defeat</h3>
+                        <?php if ($mostPointsInLossMatchup): ?>
+                            <span class="stat-league"><?php echo htmlspecialchars($mostPointsInLossMatchup['league']); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($mostPointsInLossMatchup): ?>
+                        <div class="stat-primary">
+                            <span class="stat-owner"><?php echo htmlspecialchars($mostPointsInLossMatchup['loserOwner']); ?></span>
+                            <span class="stat-score negative"><?php echo number_format($mostPointsInLossMatchup['loserScore'], 2); ?></span>
+                        </div>
+                        <p class="stat-team"><?php echo htmlspecialchars($mostPointsInLossMatchup['loser']); ?></p>
+                        <p class="stat-footnote">vs. <?php echo htmlspecialchars($mostPointsInLossMatchup['winnerOwner']); ?>, <?php echo htmlspecialchars($mostPointsInLossMatchup['winner']); ?> - <?php echo number_format($mostPointsInLossMatchup['winnerScore'], 2); ?></p>
+                    <?php else: ?>
+                        <p>No current-week losses available.</p>
+                    <?php endif; ?>
+                </article>
+                <article class="stat-card">
+                    <div class="stat-heading">
                         <h3>Smallest Margin of Defeat</h3>
                         <?php if ($smallestDefeatMatchup): ?>
                             <span class="stat-league"><?php echo htmlspecialchars($smallestDefeatMatchup['league']); ?></span>
@@ -278,6 +304,24 @@ $smallestDefeatMatchup = $smallestDefeat !== null
                         <div class="matchup-row"><span><?php echo htmlspecialchars($smallestDefeatMatchup['loser']); ?></span><span><?php echo number_format($smallestDefeatMatchup['loserScore'], 2); ?></span></div>
                     <?php else: ?>
                         <p>No completed defeats available.</p>
+                    <?php endif; ?>
+                </article>
+                <article class="stat-card">
+                    <div class="stat-heading">
+                        <h3>Lowest Score</h3>
+                        <?php if ($lowestWeekTeam): ?>
+                            <span class="stat-league"><?php echo htmlspecialchars($lowestWeekTeam['league']); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($lowestWeekTeam): ?>
+                        <div class="stat-primary">
+                            <span class="stat-owner"><?php echo htmlspecialchars($lowestWeekTeam['owner']); ?></span>
+                            <span class="stat-score negative"><?php echo number_format($lowestWeekTeam['score'], 2); ?></span>
+                        </div>
+                        <p class="stat-team"><?php echo htmlspecialchars($lowestWeekTeam['team']); ?></p>
+                        <p class="stat-footnote">vs. <?php echo htmlspecialchars($lowestWeekTeam['opponentOwner']); ?>, <?php echo htmlspecialchars($lowestWeekTeam['opponent']); ?> - <?php echo number_format($lowestWeekTeam['opponentScore'], 2); ?></p>
+                    <?php else: ?>
+                        <p>No current-week games available.</p>
                     <?php endif; ?>
                 </article>
                 <article class="stat-card">
