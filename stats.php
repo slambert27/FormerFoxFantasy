@@ -234,7 +234,7 @@ $fewestPointsInWinMatchup = $fewestPointsInWin !== null
 
     <nav class="league-toggle" aria-label="Site navigation">
         <?php foreach ($leagues as $league): ?>
-            <a href="index.php?league=<?php echo urlencode($league['id']); ?>" class="toggle-btn">
+            <a href="index.php?league=<?php echo urlencode($league['id']); ?>&scoring_period=<?php echo urlencode((string)$selectedScoringPeriod); ?>" class="toggle-btn">
                 <?php echo htmlspecialchars($league['name']); ?>
             </a>
         <?php endforeach; ?>

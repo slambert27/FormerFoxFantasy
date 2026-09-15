@@ -201,12 +201,12 @@ if (!empty($data['schedule'])) {
     <!-- LEAGUE SELECTION TOGGLE -->
     <div class="league-toggle">
         <?php foreach ($leagues as $index => $league): ?>
-            <a href="?league=<?php echo urlencode($league['id']); ?>" 
+            <a href="?league=<?php echo urlencode($league['id']); ?>&scoring_period=<?php echo urlencode((string)$selectedScoringPeriod); ?>" 
                class="toggle-btn <?php echo ($selectedIdx === $index) ? 'active' : ''; ?>">
                 <?php echo htmlspecialchars($league['name']); ?>
             </a>
         <?php endforeach; ?>
-        <a href="stats" class="toggle-btn">Stats</a>
+        <a href="stats?scoring_period=<?php echo urlencode((string)$selectedScoringPeriod); ?>" class="toggle-btn">Stats</a>
     </div>
 
     <!-- SECTION 1: SELECTED WEEK SCORES -->
