@@ -24,6 +24,11 @@ $selectedScoringPeriod = filter_var($_GET['scoring_period'] ?? $currentWeek, FIL
 if ($selectedScoringPeriod === false || $selectedScoringPeriod < 1 || $selectedScoringPeriod > $currentWeek) {
     $selectedScoringPeriod = $currentWeek;
 }
+if ($selectedScoringPeriod !== $currentWeek || array_key_exists('scoring_period', $_GET)) {
+    foreach ($leagueData as $leagueId => $league) {
+        $leagueData[$leagueId]['data'] = loadLeagueData($leagueId, $season, 300, $selectedScoringPeriod);
+    }
+}
 
 $currentWeekScores = [];
 $currentWeekMargins = [];

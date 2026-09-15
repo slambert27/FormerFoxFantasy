@@ -18,10 +18,14 @@ function getLeagueConfigs(): array
     ];
 }
 
-function loadLeagueData(string $leagueId, string $season = '2026', int $cacheTime = 300): array
+function loadLeagueData(string $leagueId, string $season = '2026', int $cacheTime = 300, ?int $scoringPeriodId = null): array
 {
-    $cacheFile = __DIR__ . "/espn_fantasy_cache_{$leagueId}.json";
+    $cacheSuffix = $scoringPeriodId === null ? '' : "_period_{$scoringPeriodId}";
+    $cacheFile = __DIR__ . "/espn_fantasy_cache_{$leagueId}{$cacheSuffix}.json";
     $url = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/{$season}/segments/0/leagues/{$leagueId}?view=mTeam&view=mStandings&view=mMatchup";
+    if ($scoringPeriodId !== null) {
+        $url .= "&scoringPeriodId={$scoringPeriodId}";
+    }
     $response = false;
 
     if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTime) {

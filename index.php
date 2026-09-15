@@ -39,6 +39,9 @@ $selectedScoringPeriod = filter_var($_GET['scoring_period'] ?? $currentScoringPe
 if ($selectedScoringPeriod === false || $selectedScoringPeriod < 1 || $selectedScoringPeriod > $currentScoringPeriod) {
     $selectedScoringPeriod = $currentScoringPeriod;
 }
+if ($selectedScoringPeriod !== $currentScoringPeriod || array_key_exists('scoring_period', $_GET)) {
+    $data = loadLeagueData($activeLeagueId, $season, 300, $selectedScoringPeriod);
+}
 
 // 4. DATA PROCESSING
 // Map Team IDs to their actual names so we can display them easily later
