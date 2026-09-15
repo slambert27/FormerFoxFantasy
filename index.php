@@ -94,18 +94,16 @@ foreach ($data['teams'] as $teamIndex => $t) {
         'losses' => $t['record']['overall']['losses'],
         'ties'  => $t['record']['overall']['ties'],
         'points' => $t['record']['overall']['pointsFor'],
-        'rank'  => $teamIndex + 1,
+        'rank'  => $t['playoffSeed'],
         'playoffPct' => $t['currentSimulationResults']['playoffPct'] ?? 0,
         'roster' => $roster
     ];
 }
 
 // Sort the teams array by rank (Playoff Seed) for the standings table
-// API provides teams in order matching ESPN site, playoffSeed is reversed from that order
-// TODO: check this after week 1 results
-// uasort($teams, function($a, $b) {
-//     return $a['rank'] <=> $b['rank'];
-// });
+uasort($teams, function($a, $b) {
+    return $a['rank'] <=> $b['rank'];
+});
 
 // Filter out only the matchups for the current active week
 $currentMatchups = [];
