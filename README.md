@@ -2,6 +2,9 @@
 
 Former Fox Fantasy Dashboard is a lightweight PHP dashboard for viewing and comparing ESPN Fantasy Football leagues.
 
+<img width="1512" height="729" alt="Page Scoreboard" src="https://github.com/user-attachments/assets/e66fd74a-8cba-4575-8f71-0fb45c2dd4ff" />
+
+
 ## 🕹️ Features
 
 - Switch between the Varsity, JV, and Freshman leagues.
