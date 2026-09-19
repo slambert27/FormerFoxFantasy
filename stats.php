@@ -356,11 +356,11 @@ $fewestPointsInWinMatchup = $fewestPointsInWin !== null
                 <article class="stat-card">
                     <div class="stat-heading">
                         <h3>Lowest Score</h3>
-                        <?php if ($lowestWeekTeam && $lowestWeekTeam['score'] > 0): ?>
+                        <?php if ($lowestWeekTeam): ?>
                             <span class="stat-league"><?php echo htmlspecialchars($lowestWeekTeam['league']); ?></span>
                         <?php endif; ?>
                     </div>
-                    <?php if ($lowestWeekTeam && $lowestWeekTeam['score'] > 0): ?>
+                    <?php if ($lowestWeekTeam): ?>
                         <div class="stat-primary">
                             <span class="stat-owner"><?php echo htmlspecialchars($lowestWeekTeam['owner']); ?></span>
                             <span class="stat-score negative"><?php echo number_format($lowestWeekTeam['score'], 2); ?></span>
@@ -380,7 +380,7 @@ $fewestPointsInWinMatchup = $fewestPointsInWin !== null
                         </div>
                         <?php foreach ($leagues as $league): ?>
                             <?php $playerTeam = $currentWeekTopPlayerOwners[$league['id']] ?? null; ?>
-                            <p class="player-team-row"><?php echo htmlspecialchars($league['name']); ?>: <?php echo htmlspecialchars($playerTeam['owner'] ?? 'Free Agent'); ?><?php if ($playerTeam): ?> <span class="player-result <?php echo strtolower($playerTeam['result']); ?>"><?php echo htmlspecialchars($playerTeam['result']); ?></span><?php endif; ?></p>
+                            <p class="player-team-row"><?php echo htmlspecialchars($league['name']); ?>: <?php echo htmlspecialchars($playerTeam['owner'] ?? 'Free Agent'); ?><?php if ($playerTeam && $allCurrentWeekGamesFinal): ?> <span class="player-result <?php echo strtolower($playerTeam['result']); ?>"><?php echo htmlspecialchars($playerTeam['result']); ?></span><?php endif; ?></p>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <p>Check back Thursday night</p>
@@ -394,7 +394,7 @@ $fewestPointsInWinMatchup = $fewestPointsInWin !== null
             <div class="stat-list">
                 <article class="stat-card">
                     <h3>Coming Soon</h3>
-                    <p>Check back Thursday night</p>
+                    <p>Check back later in the season</p>
                 </article>
             </div>
         </section>
