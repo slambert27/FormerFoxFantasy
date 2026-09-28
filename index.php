@@ -232,7 +232,7 @@ if (!empty($data['schedule'])) {
             $awayScore = (float)($match['away']['pointsByScoringPeriod'][$selectedScoringPeriod] ?? 0);
             $homeProjected = $selectedScoringPeriod === $currentScoringPeriod ? ($match['home']['totalProjectedPointsLive'] ?? null) : null;
             $awayProjected = $selectedScoringPeriod === $currentScoringPeriod ? ($match['away']['totalProjectedPointsLive'] ?? null) : null;
-            $matchupFinal = ($match['winner'] ?? 'UNDECIDED') !== 'UNDECIDED';
+            $matchupFinal = ($match['winner'] ?? 'UNDECIDED') !== 'UNDECIDED' || ($homeScore == $homeProjected && $awayScore == $awayProjected);
             $homeComparisonScore = $matchupFinal ? $homeScore : ($homeProjected ?? $homeScore);
             $awayComparisonScore = $matchupFinal ? $awayScore : ($awayProjected ?? $awayScore);
             
